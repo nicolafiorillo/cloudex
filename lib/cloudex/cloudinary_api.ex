@@ -98,7 +98,8 @@ defmodule Cloudex.CloudinaryApi do
       [
         {"Content-Type", "application/x-www-form-urlencoded"},
         {"Accept", "application/json"},
-      ]
+      ],
+      [timeout: 50_000, recv_timeout: 50_000]
     ),
          {:ok, response} <- Poison.decode(raw_response.body),
          do: handle_response(response, source)
