@@ -54,7 +54,7 @@ defmodule Cloudex do
   """
   def delete_resources(item) do
     Cloudex.CloudinaryApi
-    |> Task.async(:delete_resources, [item, %{type: :prefix}])
+    |> Task.async(:delete, [item, %{type: :prefix}])
     |> Task.await(60_000)
   end
 
