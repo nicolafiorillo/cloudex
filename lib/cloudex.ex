@@ -45,7 +45,16 @@ defmodule Cloudex do
   """
   def delete(item) do
     Cloudex.CloudinaryApi
-    |> Task.async(:delete, [item])
+    |> Task.async(:delete, [item, %{type: :public_id}])
+    |> Task.await(60_000)
+  end
+
+  @doc """
+  Delete an image with prefix in public id
+  """
+  def delete_resources(item) do
+    Cloudex.CloudinaryApi
+    |> Task.async(:delete_resources, [item, %{type: :prefix}])
     |> Task.await(60_000)
   end
 

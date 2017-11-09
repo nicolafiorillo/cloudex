@@ -28,9 +28,9 @@ defmodule Cloudex.CloudinaryApi do
   @doc """
   Deletes an image given a public id
   """
-  @spec delete(String.t) :: {:ok, %Cloudex.DeletedImage{}} | {:error, any}
-  def delete(item) when is_bitstring(item) do
-    case delete_file(item) do
+  @spec delete(String.t, map) :: {:ok, %Cloudex.DeletedImage{}} | {:error, any}
+  def delete(item, opts) when is_bitstring(item) do
+    case delete_file(item, opts) do
       {:ok, _} -> {:ok, %Cloudex.DeletedImage{public_id: item}}
       error -> error
     end
@@ -73,18 +73,20 @@ defmodule Cloudex.CloudinaryApi do
     |> post(url)
   end
 
+  defp hackney_options, do: [hackney: [basic_auth: {Cloudex.Settings.get(:api_key), Cloudex.Settings.get(:secret)}]]
 
-  @spec delete_file(bitstring) :: {:ok, %Cloudex.DeletedImage{}} | {:error, %Elixir.HTTPoison.Error{}}
-  defp delete_file(item) do
-    options = [
-      hackney: [
-        basic_auth: {Cloudex.Settings.get(:api_key), Cloudex.Settings.get(:secret)}
-      ]
-    ]
-    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?public_ids[]=#{item}"
-    HTTPoison.delete(url, @cloudinary_headers, options)
+  @spec delete_file(bitstring, map) :: {:ok, %Cloudex.DeletedImage{}} | {:error, %Elixir.HTTPoison.Error{}}
+  defp delete_file(item, opts) do
+    delete_type = delete_file_options(opts)
+    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?#{delete_type}[]=#{item}"
+    HTTPoison.delete(url, @cloudinary_headers, hackney_options())
   end
 
+  @spec delete_file_options(map) :: String.t
+  defp delete_file_options(%{type: :public_id}), do: "public_ids"
+  defp delete_file_options(%{type: :prefix}), do: "prefix"
+  defp delete_file_options(_), do: raise "unknown delete type"
+  
   @spec post(tuple | String.t, binary) :: {:ok, %Cloudex.UploadedImage{}} | {:error, any}
   defp post(body, source) do
     with {:ok, raw_response} <- HTTPoison.request(
