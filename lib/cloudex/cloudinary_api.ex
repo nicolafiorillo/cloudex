@@ -29,12 +29,7 @@ defmodule Cloudex.CloudinaryApi do
   Deletes an image given a public id
   """
   @spec delete(String.t, map) :: {:ok, %Cloudex.DeletedImage{}} | {:error, any}
-  def delete(item, opts) when is_bitstring(item) do
-    case delete_file(item, opts) do
-      {:ok, _} -> {:ok, %Cloudex.DeletedImage{public_id: item}}
-      error -> error
-    end
-  end
+  def delete(item, opts) when is_bitstring(item), do: delete_file(item, opts)
   def delete(invalid_item) do
     {:error, "delete/1 only accepts valid public id, received: #{inspect invalid_item}"}
   end
@@ -78,12 +73,19 @@ defmodule Cloudex.CloudinaryApi do
   @spec delete_file(bitstring, map) :: {:ok, %Cloudex.DeletedImage{}} | {:error, %Elixir.HTTPoison.Error{}}
   defp delete_file(item, opts) do
     delete_type = delete_file_options(opts)
-    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?#{delete_type}[]=#{item}"
-    HTTPoison.delete(url, @cloudinary_headers, hackney_options())
+    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?#{delete_type}=#{item}"
+    case HTTPoison.delete(url, @cloudinary_headers, hackney_options()) do
+      {:ok, _} -> {:ok, delete_file_res(opts, item)}
+      error    -> error
+    end
   end
 
+  @spec delete_file_res(map, bitstring) :: String.t
+  defp delete_file_res(%{type: :public_id}, item), do: %Cloudex.DeletedImage{public_id: item}
+  defp delete_file_res(%{type: :prefix}, item), do: %Cloudex.DeletedImage{prefix: item}
+
   @spec delete_file_options(map) :: String.t
-  defp delete_file_options(%{type: :public_id}), do: "public_ids"
+  defp delete_file_options(%{type: :public_id}), do: "public_ids[]"
   defp delete_file_options(%{type: :prefix}), do: "prefix"
   defp delete_file_options(_), do: raise "unknown delete type"
   
