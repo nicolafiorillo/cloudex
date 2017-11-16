@@ -73,7 +73,7 @@ defmodule Cloudex.CloudinaryApi do
   @spec delete_file(bitstring, map) :: {:ok, %Cloudex.DeletedImage{}} | {:error, %Elixir.HTTPoison.Error{}}
   defp delete_file(item, opts) do
     delete_type = delete_file_options(opts)
-    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?#{delete_type}=#{item}"
+    url = "#{@base_url}#{Cloudex.Settings.get(:cloud_name)}/resources/image/upload?#{delete_type}=#{item};keep_original=false"
     case HTTPoison.delete(url, @cloudinary_headers, hackney_options()) do
       {:ok, _} -> {:ok, delete_file_res(opts, item)}
       error    -> error
