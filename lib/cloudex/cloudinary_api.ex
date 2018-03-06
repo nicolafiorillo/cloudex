@@ -45,6 +45,8 @@ defmodule Cloudex.CloudinaryApi do
 
   @spec upload_file(String.t, map) :: {:ok, %Cloudex.UploadedImage{}} | {:error, any}
   defp upload_file(file_path, opts) do
+    res_type = get_res_type(opts)
+
     body = {
       :multipart,
       (
@@ -55,17 +57,22 @@ defmodule Cloudex.CloudinaryApi do
         |> Map.to_list) ++ [{:file, file_path}]
     }
 
-    post(body, file_path)
+    post(body, res_type, file_path)
   end
+
+  defp get_res_type(%{resource_type: resource_type}), do: resource_type
+  defp get_res_type(_), do: "image"
 
   @spec upload_url(String.t, map) :: {:ok, %Cloudex.UploadedImage{}} | {:error, any}
   defp upload_url(url, opts) do
+    res_type = get_res_type(opts)
+
     opts
     |> Map.merge(%{file: url})
     |> prepare_opts
     |> sign
     |> URI.encode_query
-    |> post(url)
+    |> post(res_type, url)
   end
 
   defp hackney_options, do: [hackney: [basic_auth: {Cloudex.Settings.get(:api_key), Cloudex.Settings.get(:secret)}]]
@@ -89,11 +96,11 @@ defmodule Cloudex.CloudinaryApi do
   defp delete_file_options(%{type: :prefix}), do: "prefix"
   defp delete_file_options(_), do: raise "unknown delete type"
   
-  @spec post(tuple | String.t, binary) :: {:ok, %Cloudex.UploadedImage{}} | {:error, any}
-  defp post(body, source) do
+  @spec post(tuple | String.t, String.t, binary) :: {:ok, %Cloudex.UploadedImage{}} | {:error, any}
+  defp post(body, res_type, source) do
     with {:ok, raw_response} <- HTTPoison.request(
       :post,
-      "http://api.cloudinary.com/v1_1/#{Cloudex.Settings.get(:cloud_name)}/image/upload",
+      "http://api.cloudinary.com/v1_1/#{Cloudex.Settings.get(:cloud_name)}/#{res_type}/upload",
       body,
       [
         {"Content-Type", "application/x-www-form-urlencoded"},
@@ -135,6 +142,7 @@ defmodule Cloudex.CloudinaryApi do
 
     data_without_secret = data
                           |> Map.delete(:file)
+                          |> Map.delete(:resource_type)
                           |> Map.merge(%{"timestamp" => timestamp})
                           |> Enum.map(fn {key, val} -> "#{key}=#{val}" end)
                           |> Enum.sort
